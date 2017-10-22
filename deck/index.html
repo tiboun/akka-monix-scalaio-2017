@@ -1,0 +1,2075 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+        <title>reveal.js</title>
+
+        <link rel="stylesheet" href="css/reveal.css">
+        <link rel="stylesheet" href="css/reveal-ext.css">
+        <link rel="stylesheet" href="css/theme/scalaio.css">
+
+        <!-- Theme used for syntax highlighting of code -->
+        <link rel="stylesheet" href="lib/css/zenburn.css">
+
+        <!-- Printing and PDF exports -->
+        <script>
+            var link = document.createElement( 'link' );
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+    </head>
+    <body>
+        <div class="reveal">
+            <div class="header"><div class="scalaio-logo"></div><div class="ebiznext-logo"></div></div>
+            <div class="slides">
+                <section>
+                    <h1>Is Monix an alternative to Akka-Streams?</h1>
+                    <br/>
+                    <br/>
+                    <br/>
+                    Bounkong KHAMPHOUSONE - Scala.<span style="color:DarkRed">io</span> 2017
+                </section>
+                <!--<section>
+                    <section><h2>Agenda</h2></section>
+                    <section>
+                        <h2>Agenda</h2>
+                        <ul>
+                            <li>What is Akka-Streams ?</li>
+                            <li>What is Monix ?</li>
+                            <li>Hello Guys!</li>
+                            <li>What do I have out-of-the-box ?</li>
+                            <li>Caching URL use case</li>
+                            <li>Extending way</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Agenda</h2>
+                        <ul>
+                            <li>Parallel computing</li>
+                            <li>Handling errors</li>
+                            <li>Cancel stream</li>
+                            <li>Unit testing</li>
+                            <li>Additional connectors</li>
+                            <li>Wrap up</li>
+                            <li>Annexes</li>
+                        </ul>
+                    </section>
+                </section>-->
+                <section>
+                    <section><h2>What is Akka-Streams ?</h2></section>
+                    <section>
+                        <h2>What is Akka-Streams ?</h2>
+                        <ul>
+                            <li>Actor model</li>
+                            <li>GraphDSL</li>
+                            <li>Materializer</li>
+                        </ul>
+                    </section>
+                    <section>
+                            <h2>What is Akka-Streams ?</h2>
+                            <pre>
+                                    Source[+Out, +Mat]
+                                            +
+                                            |
+                                            v
+                                  Flow[-In, +Out, +Mat]
+                                            +
+                                            |
+                                            v
+                                     Sink[-In, +Mat]
+
+                                            ⥥
+
+                                      RunnableGraph
+                            </pre>
+                        </section>
+                </section>
+                <section>
+                    <section><h2>What is Monix ?</h2></section>
+                    <section>
+                        <h2>What is Monix ?</h2>
+                        <pre>
+                    +------------+    +--------------------------------+
+                    |            |    |                                |
+                    |  Observer  |---<>             Subject            |
+                    |            |    |                                |
+                    +------------+    +--------------------------------+
+                    +------------+    | + observerCollection           |
+                    | + notify() +    +--------------------------------+
+                    +------------+    | + registerObserver(observer)   |
+                                      | + unregisterObserver(observer) |
+                                      | + notifyObservers()            |
+                                      +--------------------------------+
+                        </pre>
+                    </section>
+                    <section>
+                        <h2>What is Monix ?</h2>
+                        <pre>
+                +----------------+    +----------------------------------+
+                |                |    |                                  |
+                |    Observer    |---<>            Observable            |
+                |                |    |                                  |
+                +----------------+    +----------------------------------+
+                +----------------+    +----------------------------------+
+                | + onNext()     +    | + subscribe(subscriber)          |
+                | + onError()    +    | + subscribe(observer)(scheduler) |
+                | + onComplete() +    | + consumeWith(consumer)          |
+                +----------------+    +----------------------------------+
+                        ^
+                        |
+                 +-------------+
+                 |             |
+                 | Subscriber  |
+                 |             |
+                 +-------------+
+                 | + scheduler |
+                 +-------------+
+                 +-------------+
+                        </pre>
+                    </section>
+                    <section>
+                        <h2>What is Monix ?</h2>
+                        <pre>
+                                     Observable[+Out]
+                                            +
+                                            |
+                                            v
+                                  Transformer[-In, +Out]
+                                            +
+                                            |
+                                            v
+                                      Observer[-In]
+
+                                            ⥥
+
+                                       Cancelable
+                        </pre>
+                    </section>
+                    <section>
+                        <h2>What is Monix ?</h2>
+                        <pre>
+                                     Observable[+Out]
+                                            +
+                                            |
+                                            v
+                                  Transformer[-In, +Out]   <=>   Observable[A] => Observable[B]
+                                            +
+                                            |
+                                            v
+                                      Observer[-In]
+
+                                            ⥥
+
+                                       Cancelable
+                        </pre>
+                    </section>
+                    <section>
+                        <h2>What is Monix ?</h2>
+                        <pre>
+                                     Observable[+Out]
+                                            +
+                                            |
+                                            v
+                                      Observer[-In]
+
+                                            ⥥
+
+                                       Cancelable
+                        </pre>
+                    </section>
+                    <section>
+                        <h2>What is Monix ?</h2>
+                        <pre>
+                                     Observable[+Out]
+                                            +
+                                            |
+                                            v
+                                   Consumer[-In, +Res]
+
+                                            ⥥
+
+                                        Task[Res]
+                        </pre>
+                    </section>
+                </section>
+                <section>
+                    <section><h2>Hello Guys!</h2></section>
+                    <section>
+                        <h2>Hello Guys in Akka-Streams !</h2>
+                        <pre><code class="scala hljs">
+object HelloGuys extends App {
+
+  def helloGuys(names: String*): RunnableGraph[Future[Done]] = {
+    Source(names.toList)
+      .toMat(Sink.foreach(n => println(s"Hello $n !")))(Keep.right)
+  }
+
+  implicit val actorSystem = ActorSystem("hello-guys-app")
+  implicit val actorMaterializer = ActorMaterializer()
+  import actorSystem.dispatcher
+
+  helloGuys("Scala.IO", "guys").run().onComplete {
+    case _ => actorSystem.terminate()
+  }
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Hello Guys in Monix!</h2>
+                        <pre><code class="scala hljs">
+object HelloGuys extends App {
+
+  def helloGuys(names: String*) = {
+    Observable(names: _*).consumeWith(Consumer.foreach(n =>
+      println(s"Hello $n !")))
+  }
+
+  import monix.execution.Scheduler.Implicits.global
+
+  val cancelable: CancelableFuture[Unit] = helloGuys("Scala.IO", "guys").runAsync
+  Await.result(cancelable, Duration.Inf)
+}
+                        </code></pre>
+                    </section>
+                </section>
+                <section>
+                    <section><h2>What do I have out-of-the-box ?</h2></section>
+                    <section>
+                        <h2>What do I have out-of-the-box ?</h2>
+                        <ul>
+                            <li>More observable in Monix</li>
+                            <li class="fragment" data-fragment-index="1">More operators in Monix</li>
+                            <li class="fragment" data-fragment-index="2">Almost same sink/consumer</li>
+                        </ul>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>Caching URL use case</h2>
+                    </section>
+                    <section>
+                        <h2>Caching URL use case</h2>
+                        <pre>
+                            +---------+   +-----------+   +------+
+                            |         |   |           |   |      |
+                        +--->  NGINX  +--->  Web App  +--->  DB  |
+                            |         |   |           |   |      |
+                            +---------+   +-----------+   +------+
+                        </pre>
+                    </section>
+                    <section>
+                        <h2>Caching URL use case</h2>
+                        <pre>
+                    +-----------------------------------------------------+
+                    |                     Cache Processor                 |
+                    +-----------------------------------------------------+
+                    |                                                     |
+                    |                     +----------+                   |
+                    |                   +----------+ |                   |
+                    |   +--------+    +----------+ | |    +----------+   |
+                    |   |        |    |          | | |    |          |   |
+                    |   | URL    +---->  HTTP    | | |----> Reporter |   |
+                    |   | Feeder |    |  Client  | |-+    |          |   |
+                    |   |        |    |          +-+      |          |   |
+                    |   +--------+    +----------+        +----------+   |
+                    |                                                     |
+                    +-----------------------------------------------------+
+                        </pre>
+                    </section>
+                    <section>
+                        <h2>... in Akka-Streams : URL Feeder</h2>
+                        <pre><code class="scala hljs">
+trait URLFeeder {
+    def url: Source[URLVal, NotUsed]
+}
+
+class FileURLFeeder(fileUrlFeederConfig: FileUrlFeederConfig) extends URLFeeder {
+    override val url: Source[URLVal, NotUsed] = FileIO
+        .fromPath(new File(fileUrlFeederConfig.fileLocation).toPath)
+        .via(
+            Framing.delimiter(ByteString("\n"),
+                            maximumFrameLength = 256,
+                            allowTruncation = true))
+        .map(bs => URLVal(bs.utf8String))
+        .mapMaterializedValue(_ => NotUsed)
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Monix : URL Feeder</h2>
+                        <pre><code class="scala hljs">
+trait URLFeeder {
+    def url: Observable[URLVal]
+}
+
+class FileURLFeeder(fileUrlFeederConfig: FileUrlFeederConfig) extends URLFeeder {
+    override val url: Observable[URLVal] = Observable
+        .fromLinesReader(
+            new BufferedReader(
+            new InputStreamReader(
+                new FileInputStream(fileUrlFeederConfig.fileLocation),
+                StandardCharsets.UTF_8)))
+        .map(URLVal)
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Akka-Streams : HTTP Client</h2>
+                        <pre class="small"><code class="scala hljs">
+trait HttpClient {
+    def httpGet: Flow[URLVal, (URLVal, Either[Throwable, HttpStatusVal]), NotUsed]
+}
+class SttpHttpClient(cfg: HttpClientConfig)(
+    implicit b: SttpBackend[Future, Source[ByteString, Any]]) extends HttpClient {
+    
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    override val httpGet =
+        Flow[URLVal].mapAsyncUnordered(httpClientConfig.maxClient)(url =>
+            get(url).map(url -> _))
+
+    private def get(url: URLVal): Future[Either[Throwable, HttpStatusVal]] = {
+        sttp.get(StringContext(url.value).uri()).send()
+            .map(r => Right(HttpStatusVal(r.code)))
+            .recover { case t: Throwable => Left(t) }
+    }
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Monix : HTTP Client</h2>
+                        <pre class="small"><code class="scala hljs">
+trait HttpClient {
+    def httpGet: Transformer[URLVal, (URLVal, Either[Throwable, HttpStatusVal])]
+}
+class SttpHttpClient(httpClientConfig: HttpClientConfig)(
+    implicit b: SttpBackend[Task, Observable[ByteBuffer]]) extends HttpClient {
+
+    override val httpGet: Transformer[URLVal, (URLVal, Either[Throwable, HttpStatusVal])] =
+        _.mapAsync(httpClientConfig.maxClient)(url =>
+            get(url).map(url -> _))
+
+    private def get(url: URLVal): Task[Either[Throwable, HttpStatusVal]] = {
+        sttp.get(StringContext(url.value).uri()).send()
+            .map(r => Right(HttpStatusVal(r.code)))
+            .onErrorRecover { case t: Throwable => Left(t) }
+    }
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Akka-Streams : Reporter</h2>
+                        <pre class="small"><code class="scala hljs">
+trait Reporter[T] {
+
+    def urlBucketsHandler: URLBuckets => T
+
+    lazy val report: Sink[(URLVal, Either[Throwable, HttpStatusVal]), Future[T]] =
+        Flow[(URLVal, Either[Throwable, HttpStatusVal])]
+            .fold((Seq[CachedUrl](), Seq[NotCachedUrl](), Seq[InvalidUrl]())) {
+                case ((cachedUrl, notCachedUrl, invalidUrl), (url, eitherResponse)) =>
+                    eitherResponse.fold(
+                    _ => (cachedUrl, notCachedUrl, url.invalid +: invalidUrl),
+                    r =>
+                        if (r.isSuccess)
+                            (url.cached +: cachedUrl, notCachedUrl, invalidUrl)
+                        else
+                            (cachedUrl, url.notCached +: notCachedUrl, invalidUrl)
+                    )
+            }
+            .map(urlBucketsHandler)
+            .toMat(Sink.head)(Keep.right)
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Monix : Reporter</h2>
+                        <pre class="small"><code class="scala hljs">
+trait Reporter[T] {
+
+    def urlBucketsHandler: URLBuckets => T
+
+    val report: Consumer[(URLVal, Either[Throwable, HttpStatusVal]), T] =
+        Consumer
+            .foldLeft[URLBuckets, (URLVal, Either[Throwable, HttpStatusVal])](
+                (Seq[CachedUrl](), Seq[NotCachedUrl](), Seq[InvalidUrl]())
+            ) {
+                case ((cachedUrl, notCachedUrl, invalidUrl), (url, eitherResponse)) =>
+                    eitherResponse.fold(
+                    _ => (cachedUrl, notCachedUrl, url.invalid +: invalidUrl),
+                    r =>
+                        if (r.isSuccess)
+                            (url.cached +: cachedUrl, notCachedUrl, invalidUrl)
+                        else
+                            (cachedUrl, url.notCached +: notCachedUrl, invalidUrl)
+                    )
+            }.map(urlBucketsHandler)
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Concrete reporter</h2>
+                        <pre class="small"><code class="scala hljs">
+class MessageReporter extends Reporter[String] {
+    def listUrls(urls: Seq[URLVal]): String = urls.mkString("  - ", "\n  - ", "\n")
+    override val urlBucketsHandler: URLBuckets => String = {
+        case (cachedUrl, notCachedUrl, invalidUrl) =>
+            val sb = new StringBuilder()
+            sb.append(s"${cachedUrl.size} urls cached\n")
+            if (notCachedUrl.nonEmpty) {
+                sb.append(s"${notCachedUrl.size} urls haven't been cached :\n")
+                sb.append(listUrls(notCachedUrl))
+            }
+            if (invalidUrl.nonEmpty) {
+                sb.append(s"${invalidUrl.size} invalid urls:\n")
+                sb.append(listUrls(invalidUrl))
+            }
+            sb.toString()
+    }
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Akka-Streams : Cache Processor</h2>
+                        <pre><code class="scala hljs">
+class CacheProcessor[T](urlFeeder: URLFeeder,
+                        httpClient: HttpClient,
+                        reporter: Reporter[T])(
+    implicit materializer: Materializer) {
+    def cache: Future[T] =
+        urlFeeder.url
+            .via(httpClient.httpGet)
+            .runWith(reporter.report)
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Monix : Cache Processor</h2>
+                        <pre><code class="scala hljs">
+class CacheProcessor[T](urlFeeder: URLFeeder,
+                        httpClient: HttpClient,
+                        reporter: Reporter[T])(implicit scheduler: Scheduler) {
+    def cache: CancelableFuture[T] =
+        urlFeeder.url
+            .transform(httpClient.httpGet)
+            .consumeWith(reporter.report)
+            .runAsync
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Akka-Streams : Main</h2>
+                        <pre class="small"><code class="hljs scala">
+object AkkaStreamMain extends App {
+    implicit val system: ActorSystem = AkkaModule.actorSystem
+    implicit val materializer: ActorMaterializer = AkkaModule.actorMaterializer
+    import system.dispatcher
+    val httpClientConfig: HttpClientConfig = Configs[HttpClientConfig]
+        .get(ConfigFactory.load(), "cache.http-client").value
+    implicit val httpBackend: SttpBackend[Future, Source[ByteString, Any]] = AkkaHttpBackend.usingActorSystem(system)
+    val httpClient: SttpHttpClient = new SttpHttpClient(httpClientConfig)
+    val fileUrlFeederConfig: FileUrlFeederConfig = Configs[FileUrlFeederConfig]
+        .get(ConfigFactory.load(), "cache.file-url-feeder").value
+    val urlFeeder: FileURLFeeder = new FileURLFeeder(fileUrlFeederConfig)
+    val reporter: MessageReporter = new MessageReporter()
+    val cacheProcessor: CacheProcessor[String] = new CacheProcessor[String](urlFeeder, httpClient, reporter)
+    cacheProcessor.cache onComplete {
+        case Failure(e) =>
+            e.printStackTrace()
+            system.terminate()
+        case Success(message) =>
+            println(message)
+            system.terminate()
+    }
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Monix : Main</h2>
+                        <pre class="small"><code class="scala hljs">
+object MonixMain extends App {
+    import monix.execution.Scheduler.Implicits.global
+    val httpClientConfig: HttpClientConfig = Configs[HttpClientConfig]
+        .get(ConfigFactory.load(), "cache.http-client").value
+    implicit val httpBackend: SttpBackend[Task, Observable[ByteBuffer]] = AsyncHttpClientMonixBackend()
+    val httpClient: SttpHttpClient = new SttpHttpClient(httpClientConfig)
+    val fileUrlFeederConfig: FileUrlFeederConfig = Configs[FileUrlFeederConfig]
+        .get(ConfigFactory.load(), "cache.file-url-feeder").value
+    val urlFeeder: FileURLFeeder = new FileURLFeeder(fileUrlFeederConfig)
+    val bucketHandler: URLBuckets => String = BucketHandler.messageBuilderBucketHandler
+    val reporter: Reporter[String] = new MessageReporter()
+    val cacheProcessor: CacheProcessor[String] = new CacheProcessor[String](urlFeeder, httpClient, reporter)
+    cacheProcessor.cache onComplete {
+        case Failure(e) =>
+            e.printStackTrace()
+            httpBackend.close()
+        case Success(message) =>
+            println(message)
+            httpBackend.close()
+    }
+}
+                        </code></pre>
+                    </section>
+                </section>
+                <section>
+                    <section><h2>Extending way</h2></section>
+                    <section>
+                        <h2>Source in Akka-Streams</h2>
+                        <pre class="small"><code class="hljs scala">
+class NumbersSource extends GraphStage[SourceShape[Int]] {
+  val out: Outlet[Int] = Outlet("NumbersSource")
+  override val shape: SourceShape[Int] = SourceShape(out)
+
+  override def createLogic(inheritedAttributes: Attributes): GraphStageLogic =
+    new GraphStageLogic(shape) {
+      private var counter = 1
+
+      setHandler(out, new OutHandler {
+        override def onPull(): Unit = {
+          push(out, counter)
+          counter += 1
+        }
+      })
+    }
+}
+
+val numbersSource: Source[Int, NotUsed] = Source.fromGraph(new NumbersSource())
+numbersSource.take(5).runForeach(println)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Observable in Monix (1/3)</h2>
+                        <pre><code class="hljs scala">
+def numbersObservable: Observable[Int] = {
+  def asyncBoundary(cancelable: BooleanCancelable, ack: Future[Ack],
+        downstream: Subscriber[Int], em: ExecutionModel, nextCounter: Int)
+            (implicit s: Scheduler): Unit = {
+    ...
+  }
+  @tailrec
+  def loop(c: BooleanCancelable, downstream: Subscriber[Int], em: ExecutionModel,
+        counter: Int, syncIndex: Int)(implicit s: Scheduler): Unit = {
+    ...
+  }
+  Observable.create[Int](Unbounded) { downstream =>
+    val cancelable = BooleanCancelable()
+    val scheduler = downstream.scheduler
+    loop(cancelable, downstream, scheduler.executionModel, 1, 0)(scheduler)
+    cancelable
+  }
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Observable in Monix (2/3)</h2>
+                        <pre><code class="hljs scala">
+  @tailrec
+  def loop(c: BooleanCancelable, downstream: Subscriber[Int], em: ExecutionModel,
+        counter: Int, syncIndex: Int)(implicit s: Scheduler): Unit = {
+    if (c.isCanceled)
+      downstream.onComplete()
+    else {
+      val ack = downstream.onNext(counter)
+      val nextCounter = counter + 1
+      val nextIndex =
+        if (ack == Continue) em.nextFrameIndex(syncIndex)
+        else if (ack == Stop) -1
+        else 0
+      if (nextIndex > 0)
+        loop(c, downstream, em, nextCounter, nextIndex)
+      else if (nextIndex == 0)
+        asyncBoundary(c, ack, downstream, em, nextCounter)
+    }
+  }
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Observable in Monix (3/3)</h2>
+                        <pre><code class="hljs scala">
+  def asyncBoundary(cancelable: BooleanCancelable, ack: Future[Ack],
+        downstream: Subscriber[Int], em: ExecutionModel, nextCounter: Int)
+            (implicit s: Scheduler): Unit = {
+    ack.onComplete {
+      case Success(success) =>
+        if (success == Continue)
+          loop(cancelable, downstream, em, nextCounter, 0)
+      case Failure(ex) =>
+        s.reportFailure(ex)
+    }
+  }
+
+  numbersObservable.take(5).foreach(println)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Flow in Akka-Streams</h2>
+                        <pre><code class="hljs scala">
+class Map[A, B](f: A => B) extends GraphStage[FlowShape[A, B]] {
+    val in = Inlet[A]("Map.in")
+    val out = Outlet[B]("Map.out")
+    override val shape = FlowShape.of(in, out)
+    override def createLogic(attr: Attributes): GraphStageLogic =
+        new GraphStageLogic(shape) {
+            setHandler(in, new InHandler {
+                override def onPush(): Unit = push(out, f(grab(in)))
+            })
+            setHandler(out, new OutHandler {
+                override def onPull(): Unit = pull(in)
+            })
+        }
+}
+
+val plusOneFlow: Flow[Int, Int, NotUsed] = Flow.fromGraph(new Map((a:Int) => a + 1))
+Source(1 to 5).via(plusOneFlow).runForeach(println)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Operator in Monix (1/2)</h2>
+                        <pre class="small"><code class="hljs scala">
+class MapOperator[-A, +B](f: A => B) extends Operator[A, B] {
+    def apply(out: Subscriber[B]): Subscriber[A] = {
+        new Subscriber[A] {
+            implicit val scheduler = out.scheduler
+            private[this] var isDone = false
+            def onNext(elem: A): Future[Ack] = {
+                var streamError = true
+                try {
+                    val next = f(elem)
+                    streamError = false
+                    out.onNext(next)
+                } catch {
+                    case NonFatal(ex) if streamError =>
+                        onError(ex)
+                        Stop
+                }
+            }
+            def onError(ex: Throwable): Unit = ...
+            def onComplete(): Unit = ...
+        }
+    }
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Operator in Monix (2/2)</h2>
+                        <pre><code class="hljs scala">
+class MapOperator[-A, +B](f: A => B) extends Operator[A, B] {
+    ...
+    def onError(ex: Throwable): Unit =
+        if (!isDone) {
+            isDone = true
+            out.onError(ex)
+        }
+    def onComplete(): Unit =
+        if (!isDone) {
+            isDone = true
+            out.onComplete()
+        }
+    }
+}
+
+val plusOneOperator = new MapOperator((a:Long) => a + 1)
+Observable.range(1,6,1).liftByOperator(plusOneOperator).foreach(println)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Sink in Akka-Streams (1/2)</h2>
+                        <pre><code class="hljs scala">
+class StdoutSink extends GraphStageWithMaterializedValue[SinkShape[Int], Future[Done]] {
+    val in: Inlet[Int] = Inlet("StdoutSink")
+    override val shape: SinkShape[Int] = SinkShape(in)
+    override def createLogicAndMaterializedValue(inheritedAttributes: Attributes) = {
+        val promise = Promise[Done]()
+        val logic: GraphStageLogic = new GraphStageLogic(shape) with InHandler {
+            ...
+        }
+        (logic, promise.future)
+    }
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Sink in Akka-Streams (2/2)</h2>
+                        <pre class="small"><code class="scala hljs">
+val logic: GraphStageLogic = new GraphStageLogic(shape) with InHandler {
+    override def preStart(): Unit = pull(in)
+    override def onPush(): Unit = {
+        println(grab(in))
+        pull(in)
+    }
+    override def onUpstreamFinish(): Unit = {
+        super.onUpstreamFinish()
+        promise.trySuccess(Done)
+    }
+    override def onUpstreamFailure(ex: Throwable): Unit = {
+        super.onUpstreamFailure(ex)
+        promise.tryFailure(ex)
+    }
+    setHandler(in, this)
+}
+
+val stdoutSink: Sink[Int, Future[Done]] = Sink.fromGraph(new StdoutSink())
+Source(1 to 5).toMat(stdoutSink)(Keep.right).run()
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Consumer in Monix</h2>
+                        <pre class="small"><code class="scala hljs">
+class StdoutConsumer[A] extends Consumer.Sync[A, Unit] {
+    def createSubscriber(cb: Callback[Unit], s: Scheduler): (Subscriber.Sync[A], AssignableCancelable) = {
+        val out = new Subscriber.Sync[A] {
+            implicit val scheduler = s
+            private[this] var isDone = false
+            def onNext(elem: A): Ack = {
+                println(elem)
+                Continue
+            }
+            def onComplete(): Unit = if (!isDone) {
+                    isDone = true
+                    cb.onSuccess(())
+                }
+            def onError(ex: Throwable): Unit = if (!isDone) {
+                    isDone = true
+                    cb.onError(ex)
+                }
+        }
+        (out, AssignableCancelable.dummy)
+    }
+}
+
+Observable.range(1,6,1).consumeWith(new StdoutConsumer()).runAsync
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Graph in Akka-Streams</h2>
+                        <pre>
+                                           +-------+
+                                           |       |
+                                        +-->  ^10  +--+
+                        +-------------+ |  |       |  | +---------+
+                    IN  |             | |  +-------+  | |         | OUT
+                    +--->  Broadcast  +-+             +-+  Merge  +--->
+                        |             | |  +-------+  | |         |
+                        +-------------+ |  |       |  | +---------+
+                                        +-->  *10  +--+
+                                           |       |
+                                           +-------+
+                        </pre>
+                    </section>
+                    <section>
+                        <h2>Graph in Akka-Streams</h2>
+                        <pre><code class="scala hljs">
+val myFlowGraph: Graph[FlowShape[Int, Int], NotUsed] = GraphDSL.create() {
+    implicit builder =>
+        import akka.stream.scaladsl.GraphDSL.Implicits._
+        val bcast = builder.add(Broadcast[Int](2))
+        val merge = builder.add(Merge[Int](2))
+
+        val by10 = Flow[Int].map(_ * 10)
+        val pow10 = Flow[Int].map(Math.pow(_, 10).toInt)
+
+        bcast ~> pow10 ~> merge
+        bcast ~> by10 ~> merge
+        FlowShape(bcast.in, merge.out)
+}
+
+val flow: Flow[Int, Int, NotUsed] = Flow.fromGraph(myFlowGraph)
+Source(1 to 5).via(flow).runForeach(println)
+                        </code></pre>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>Parallel computing</h2>
+                    </section>
+                    <section>
+                        <h2>... in Akka-Streams</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Controlled</th>
+                                    <th>Async</th>
+                                    <th>Ordered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="cross"></span></td>
+                                    <td align="center"><span class="cross"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <pre><code>
+def balancer[In, Out](worker: Flow[In, Out, Any], workerCount: Int):
+    Flow[In, Out, NotUsed] = {
+  import GraphDSL.Implicits._
+  Flow.fromGraph(GraphDSL.create() { implicit b =>
+    val balancer = b.add(Balance[In](workerCount, waitForAllDownstreams = true))
+    val merge = b.add(Merge[Out](workerCount))
+    for (_ <- 1 to workerCount) {
+      balancer ~> worker.async ~> merge
+    }
+    FlowShape(balancer.in, merge.out)
+  })
+}
+val processedJobs: Source[Result, NotUsed] = myJobs.via(balancer(worker, 3))
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Monix</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Controlled</th>
+                                    <th>Async</th>
+                                    <th>Ordered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="cross"></span></td>
+                                    <td align="center"><span class="cross"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <pre><code>
+val sumConsumer = Consumer.foldLeft[Long,Long](0L)(_ + _)
+
+val loadBalancer = {
+  Consumer
+    .loadBalance(parallelism=10, sumConsumer)
+    .map(_.sum)
+}
+
+val observable: Observable[Long] = Observable.range(0, 100000)
+val task: Task[Long] = observable.consumeWith(loadBalancer)
+
+task.runAsync.foreach(println)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Akka-Streams</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Controlled</th>
+                                    <th>Async</th>
+                                    <th>Ordered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="tick"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <pre><code>
+Source(List(1,2,3)).mapAsync(4)(asynchronousComputing)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2> in Monix</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Controlled</th>
+                                    <th>Async</th>
+                                    <th>Ordered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="tick"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+<!--val items: Range = 0 until 1000
+val tasks: immutable.IndexedSeq[Task[Int]] = items.map(i => Task(i * 2))
+val batches: Iterator[Task[immutable.IndexedSeq[Int]]] =
+    tasks.sliding(10,10).map(b => Task.gather(b))
+val aggregate: Task[List[Int]] = Task.sequence(batches).map(_.flatten.toList)
+aggregate.foreach(println)-->
+                        <pre><code>
+Observable.range(0,1000)
+    .map(i => Task(i * 2))
+    .bufferSliding(10, 10)
+    .mapTask(Task.gather(_))
+    .flatMap(Observable.fromIterable(_))
+    .foreach(println)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Monix</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Controlled</th>
+                                    <th>Async</th>
+                                    <th>Ordered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td align="center"><span class="cross"></span></td>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="tick"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+<!-- val items = 0 until 1000
+val tasks = items.map(i => Task(i * 2))
+val aggregate = Task.gather(tasks).map(_.toList)
+aggregate.foreach(println) -->
+                        <pre><code>
+Observable.range(0,1000)
+    .map(i => Task(i * 2))
+    .foldLeftF(List[Task[Long]]())((acc, t) => t +: acc)
+    .map(_.reverse)
+    .mapTask(Task.gather(_))
+    .flatMap(Observable.fromIterable(_))
+    .foreach(println)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Monix</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Controlled</th>
+                                    <th>Async</th>
+                                    <th>Ordered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td align="center"><span class="cross"></span></td>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="cross"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+<!--val items = 0 until 1000
+val tasks = items.map(i => Task(i * 2))
+val aggregate = Task.gatherUnordered(tasks).map(_.toList)
+aggregate.foreach(println)-->
+                        <pre><code>
+Observable.range(0,1000)
+    .map(i => Task(i * 2))
+    .foldLeftF(List[Task[Long]]())((acc, t) => t +: acc)
+    .map(_.reverse)
+    .mapTask(Task.gatherUnordered(_))
+    .flatMap(Observable.fromIterable(_))
+    .foreach(println)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Akka-Streams</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Controlled</th>
+                                    <th>Async</th>
+                                    <th>Ordered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="cross"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <pre><code>
+Source(List(1,2,3)).mapAsyncUnordered(4)(asynchronousComputing)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>... in Monix</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Controlled</th>
+                                    <th>Async</th>
+                                    <th>Ordered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="tick"></span></td>
+                                    <td align="center"><span class="cross"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <pre><code>
+val source = Observable.range(0,1000)
+val processed = source.mapAsync(parallelism = 10) { i =>
+  Task(i * 2)
+}
+
+processed.toListL.foreach(println)
+                        </code></pre>
+                    </section>
+                </section>
+                <section>
+                    <section><h2>Handling errors</h2></section>
+                    <section>
+                        <h2>Handling errors</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Streams</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>recover</td>
+                                    <td>onErrorHandle/onErrorRecover</td>
+                                    <td>Recover from an exception with a (partial) function</td>
+                                </tr>
+                                <tr>
+                                    <td>recoverWithRetries</td>
+                                    <td>onErrorRestart<br/>onErrorRestartIf<br/>onErrorRestartUnlimited</td>
+                                    <td>Recover from an exception and emit elements from another source with retries</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>onErrorFallbackTo<br/>onErrorHandleWith<br/>onErrorRecoverWith</td>
+                                    <td>Recover with an observable on error without retry</td>
+                                </tr>
+                                <tr>
+                                    <td>RestartSource<br/>RestartSink<br/>RestartFlow</td>
+                                    <td></td>
+                                    <td>Allow to restart part of the stream on error/cancel</td>
+                                </tr>
+                                <tr>
+                                    <td>supervisionStrategy</td>
+                                    <td></td>
+                                    <td>Control stream on error (stop/resume/restart)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </section>
+                <section>
+                    <section><h2>Cancel stream</h2></section>
+                    <section>
+                        <h2>Cancel stream in Akka-Streams</h2>
+                        <pre><code class="scala hljs">
+val (killSwitch, result) = Source.repeat(1)
+    .viaMat(KillSwitches.single)(Keep.right)
+    .toMat(Sink.foreach(println))(Keep.both)
+    .run()
+...
+killSwitch.shutdown()
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Cancel stream in Monix</h2>
+                        <pre><code class="scala hljs">
+val async: CancelableFuture[Unit] = Observable.repeat(1)
+    .consumeWith(Consumer.foreach(println)).runAsync
+...
+async.cancel()
+                        </code></pre>
+                    </section>
+                </section>
+                <section>
+                    <section><h2>Unit testing</h2></section>
+                    <section>
+                        <h2>unit testing</h2>
+                        <ul>
+                            <li>In Akka-streams
+                                <ul>
+                                    <li>Akka-testkit</li>
+                                    <li>Akka-stream-testkit</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </section>
+                </section>
+                <section>
+                    <section><h2>Additional connectors</h2></section>
+                    <section>
+                        <h2>Additional connectors</h2>
+                        <ul>
+                            <li>
+                                In Akka-streams
+                                <ul>
+                                    <li><a href="https://developer.lightbend.com/docs/alpakka/current/" title="alpakka">Alpakka</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                In Monix
+                                <ul>
+                                    <li><a href="https://github.com/monix/monix-kafka" title="monix-kafka">kafka</a></li>
+                                    <li><a href="https://github.com/sangria-graphql/sangria-monix" title="sangria-monix">Sangria</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </section>
+                </section>
+                <section>
+                    <section><h2>Wrap up</h2></section>
+                    <section>
+                        <h2>Wrap up</h2>
+                        <table class="medium-font">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Akka-Streams</th>
+                                    <th>Monix</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Rich features out-of-the-box</td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Functional programming API</td>
+                                    <td align="center"><span class="orange-circle"></span></td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>External connectors</td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                    <td align="center"><span class="orange-circle"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Extendable</td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Bi-directional flow</td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                    <td align="center"><span class="red-circle"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Parallel computing</td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Scala.js</td>
+                                    <td align="center"><span class="red-circle"></span></td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Use alternative engine</td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                    <td align="center"><span class="red-circle"></span></td>
+                                </tr>
+                                <tr>
+                                    <td>Documentation</td>
+                                    <td align="center"><span class="green-circle"></span></td>
+                                    <td align="center"><span class="orange-circle"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>Wrap up</h2>
+                        <a href="https://github.com/tiboun/akka-monix-scalaio-2017" title="akka monix scalaio 2017">https://github.com/tiboun/akka-monix-scalaio-2017</a>
+                    </section>
+                </section>
+                <section><h2>Annexes</h2></section>
+                <section><h2>What do I have out-of-the-box for ...</h2></section>
+                <section>
+                    <section>
+                        <h2>... sources/observables ? Empty</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Source.empty</td>
+                                    <td>Observable.empty</td>
+                                    <td>Stream no element</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.failed</td>
+                                    <td>Observable.raiseError</td>
+                                    <td>Emit an error</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>Observable.never</td>
+                                    <td>Stream 0 element and never complete</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... sources/observables ? 1 element</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Source.fromFuture</td>
+                                    <td>Observable.fromFuture</td>
+                                    <td>Stream the element returned by Future</td>
+                                </tr>
+                                <tr>
+                                    <td><pre class="large fragment substitution" data-fragment-index="1">
+Source.lazily(() =>
+  Source.fromFuture(Future("1")))
+                                    </pre></td>
+                                    <td>Observable.fromTask</td>
+                                    <td>Stream the element returned by Task</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.single</td>
+                                    <td>Observable.now<br/>Observable.pure</td>
+                                    <td>Stream an element</td>
+                                </tr>
+                                <tr>
+                                    <td><pre class="large fragment substitution" data-fragment-index="1">
+def tailRecM[A, B](a: A)(
+    f: A => Source[Either[A, B], NotUsed]): Source[B, NotUsed] = {
+        f(a).flatMapConcat {
+            case Right(b)    => Source.single(b)
+            case Left(nextA) => tailRecM(nextA)(f)
+        }
+}
+                                    </pre></td>
+                                    <td>Observable.tailRecM</td>
+                                    <td>Stream first right element. Recurse on each left element.</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.maybe</td>
+                                    <td></td>
+                                    <td>Wait for a promise</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.lazily</td>
+                                    <td>Observable.eval<br/>Observable.delay</td>
+                                    <td>Stream one element lazily. Created only when subscribed</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>Observable.evalOnce</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td><pre class="large fragment substitution" data-fragment-index="1">
+Source.lazily(() =>
+    Source.single("element").delay(5.second))
+                                    </pre></td>
+                                    <td>Observable.evalDelayed</td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... sources/observables ? ∞ 1 element</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Source.repeat</td>
+                                    <td>Observable.repeat</td>
+                                    <td>Stream infinitely an element</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.tick</td>
+                                    <td>Observable.timerRepeated</td>
+                                    <td>Stream infitely and periodically one element</td>
+                                </tr>
+                                <tr>
+                                    <td><pre class="large fragment substitution" data-fragment-index="1">
+Source.repeat("a")
+    .map(_ => "element")
+                                    </pre></td>
+                                    <td>Observable.repeatEval</td>
+                                    <td>Stream infinitely an element by evaluating lazily</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... sources/observables ? Collection</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Source.<br/>fromIterator</td>
+                                    <td>Observable.<br/>fromIterator</td>
+                                    <td>Stream from an Iterator</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.apply</td>
+                                    <td>Observable.fromIterable<br/>Observable.apply</td>
+                                    <td>Stream from an Iterable</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="fragment substitution" data-fragment-index="1">Source(1 to 10 by 2)</span></td>
+                                    <td>Observable.range</td>
+                                    <td>Stream a range of Long</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.unfold</td>
+                                    <td>Observable.fromStateAction</td>
+                                    <td>Stream element by unfolding an element</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.unfoldAsync</td>
+                                    <td>Observable.fromAsyncStateAction</td>
+                                    <td>Stream element by unfolding future element</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... sources/observables ? ∞ collection</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Source.<br/>cycle</td>
+                                    <td>Observable.<br/>repeat</td>
+                                    <td>Stream infinitely from an Iterator</td>
+                                </tr>
+                                <tr>
+                                    <td><pre class="large fragment substitution" data-fragment-index="1">
+Source
+    .unfold(0L)(i => Some(i + 1 -> i))
+    .zip(Source.tick(0.second, 1.second, ""))
+    .map(_._1)
+                                    </pre></td>
+                                    <td>Observable.intervalWithFixedDelay<br/>Observable.interval</td>
+                                    <td>Stream infitely and periodically a Long starting from 0 and incremented 1 by 1</td>
+                                </tr>
+                                <tr>
+                                    <td><pre class="large fragment substitution" data-fragment-index="1">
+Source
+    .unfold(0L)(i => Some(i + 1 -> Source.single(i).delay(2.seconds)))
+    .zip(Source.tick(0.second, 1.second, ""))
+    .map(_._1)
+    .flatMapConcat(identity)
+                                    </pre></td>
+                                    <td>Observable.intervalAtFixedRate</td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... sources/observables ? IO</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="fragment substitution" data-fragment-index="1">Source.unfoldResource</span></td>
+                                    <td>Observable.fromInputStream</td>
+                                    <td>Stream elements from an InputStream</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="fragment substitution" data-fragment-index="1">Source.unfoldResource</span></td>
+                                    <td>Observable.fromCharsReader</td>
+                                    <td>Stream Array of chars from Reader</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="fragment substitution" data-fragment-index="1">Source.unfoldResource</span></td>
+                                    <td>Observable.fromLinesReader</td>
+                                    <td>Stream String from BufferedReader</td>
+                                </tr>
+                                <tr>
+                                    <td>Tcp().bind</td>
+                                    <td></td>
+                                    <td>Stream elements from TCP</td>
+                                </tr>
+                                <tr>
+                                    <td>FileIO.fromPath</td>
+                                    <td><span class="fragment substitution" data-fragment-index="1">Observable.fromInputStream</span></td>
+                                    <td>Stream file</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.unfoldResource</td>
+                                    <td></td>
+                                    <td>Stream elements from a resource which can be opened, read and closed</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.unfoldResourceAsync</td>
+                                    <td></td>
+                                    <td>Stream elements from a resource which can be opened, read and closed asynchronously</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... sources/observables ? miscellaneous</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Source.actorPublisher<br/>Source.actorRef</td>
+                                    <td></td>
+                                    <td>From an actor</td>
+                                </tr>
+                                <tr>
+                                    <td>Source.queue</td>
+                                    <td></td>
+                                    <td>Stream elements pushed in queue</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>... operators ? Transform</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>collect</td>
+                                <td>collect</td>
+                                <td>Apply partial function to filter and transform</td>
+                            </tr>
+                            <tr>
+                                <td>flatMapConcat</td>
+                                <td>concatMap<br/>flatMap</td>
+                                <td>Concat another source built from an element</td>
+                            </tr>
+                            <tr>
+                                <td>flatMapMerge</td>
+                                <td></td>
+                                <td>Merge another source built from an element</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>defaultIfEmpty</td>
+                                <td>Emit default item if stream is empty</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>flatMapLatest<br/>switchMap</td>
+                                <td>Switch to the latest generated Observable</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>flatScan</td>
+                                <td>Scan elements and flatten source</td>
+                            </tr>
+                            <tr>
+                                <td>fold*</td>
+                                <td>fold*</td>
+                                <td>Fold elements of the stream until completed or predicate holds</td>
+                            </tr>
+                            <tr>
+                                <td>map*</td>
+                                <td>map*</td>
+                                <td>Apply transformation</td>
+                            </tr>
+                            <tr>
+                                <td>scan*</td>
+                                <td>scan</td>
+                                <td>Scan elements</td>
+                            </tr>
+                            <tr>
+                                <td>via</td>
+                                <td>transform</td>
+                                <td>Link part of the stream</td>
+                            </tr>
+                            <tr>
+                                <td>expand</td>
+                                <td></td>
+                                <td>Instantiate an iterator with the last element.</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... operators ? Filter</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td></td>
+                                <td>distinct*</td>
+                                <td>Remove duplicates</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>distinctUntilChanged*</td>
+                                <td>Remove consecutive duplicates</td>
+                            </tr>
+                            <tr>
+                                <td>drop*</td>
+                                <td>drop*</td>
+                                <td>Drop elements</td>
+                            </tr>
+                            <tr>
+                                <td>filter<br/>filterNot</td>
+                                <td>filter</td>
+                                <td>Filter elements</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>firstOrElseF<br/>headOrElseF</td>
+                                <td>Emit first item or give a default value if stream empty</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>lastF</td>
+                                <td>Emit the last element</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>tail</td>
+                                <td>drop head</td>
+                            </tr>
+                            <tr>
+                                <td>take*</td>
+                                <td>take*<br/>headF</td>
+                                <td>Take elements not necessarily from the beginning</td>
+                            </tr>
+                            <tr>
+                                <td>prefixAndTail</td>
+                                <td></td>
+                                <td>Take n elements and create a source for the following elements</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... operators ? Split/Combine</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td></td>
+                                <td>combineLatest*</td>
+                                <td>Emit every single combination from sources</td>
+                            </tr>
+                            <tr>
+                                <td>interleave</td>
+                                <td>interleave</td>
+                                <td>Emit alternatively from source 1 and source 2 until each completes</td>
+                            </tr>
+                            <tr>
+                                <td>intersperse</td>
+                                <td></td>
+                                <td>Prepend, append and inject element into the stream (similar to mkString)</td>
+                            </tr>
+                            <tr>
+                                <td>merge*</td>
+                                <td>merge*</td>
+                                <td>Join sourcees without keeping order</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>multicast</td>
+                                <td>Emit to multiple consumers</td>
+                            </tr>
+                            <tr>
+                                <td>orElse</td>
+                                <td>switchIfEmpty</td>
+                                <td>Switch to another source if source is empty (don't become empty)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>withLatestFrom*</td>
+                                <td>Latest value from each source. Each last value has to be new.</td>
+                            </tr>
+                            <tr>
+                                <td>zip</td>
+                                <td>zip*</td>
+                                <td>Create tuples/list for each index of each observable</td>
+                            </tr>
+                            <tr>
+                                <td>zipWithIndex</td>
+                                <td>zipWithIndex</td>
+                                <td>Create a tuple of (element, index)</td>
+                            </tr>
+                            <tr>
+                                <td>split*</td>
+                                <td></td>
+                                <td>Create substreams based on a predicate</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... operators ? Buffer</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td></td>
+                                <td>bufferIntrospective</td>
+                                <td>Buffer size + queue size</td>
+                            </tr>
+                            <tr>
+                                <td>sliding</td>
+                                <td>bufferSliding</td>
+                                <td>Buffer elements and slide</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>bufferTimed</td>
+                                <td>Buffer elements within a period</td>
+                            </tr>
+                            <tr>
+                                <td>grouped*Within</td>
+                                <td>bufferTimedAndCounted</td>
+                                <td>Buffer elements within a period or size reached</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>bufferTimedWithPressure</td>
+                                <td>Buffer elements and emits only when timespan covered</td>
+                            </tr>
+                            <tr>
+                                <td>grouped</td>
+                                <td>bufferTumbling</td>
+                                <td>Buffer n elements and emit</td>
+                            </tr>
+                            <tr>
+                                <td>batch*</td>
+                                <td></td>
+                                <td>Buffer elements when downstream is slow</td>
+                            </tr>
+                            <tr>
+                                <td>buffer</td>
+                                <td></td>
+                                <td>Buffer elements and apply specified back-pressure strategy</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... operators ? Concat</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td>:+</td>
+                                    <td>Append one element</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>+:</td>
+                                    <td>Prepend one element</td>
+                                </tr>
+                                <tr>
+                                    <td>++ concat*</td>
+                                    <td>++</td>
+                                    <td>Concat two sources</td>
+                                </tr>
+                                <tr>
+                                    <td>prepend</td>
+                                    <td></td>
+                                    <td>Prepend a source</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>endWith</td>
+                                    <td>Append a collection</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>startWith</td>
+                                    <td>Prepend a collection</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... operators ? Timed</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td>ambWith</td>
+                                    <td>Race condition between two sources</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>debounce*<br/>throttleWithTimeout</td>
+                                    <td>Emit item when timeout occurs</td>
+                                </tr>
+                                <tr>
+                                    <td>throttle</td>
+                                    <td>delayOnNext</td>
+                                    <td>Delay the next element</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>delay*</td>
+                                    <td>Delay a call</td>
+                                </tr>
+                                <tr>
+                                    <td>delay</td>
+                                    <td></td>
+                                    <td>Delay consumption of the upstream with back-pressure applied</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>echo*</td>
+                                    <td>Echo last item if timeout</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>sample*<br/>throttleLast</td>
+                                    <td>Emit last item of each window</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>throttleFirst</td>
+                                    <td>Emit first item of each window</td>
+                                </tr>
+                                <tr>
+                                    <td>conflate*</td>
+                                    <td></td>
+                                    <td>Aggregate input elements to one element lower type bounded when the consumer is slow</td>
+                                </tr>
+                                <tr>
+                                    <td>initialDelay</td>
+                                    <td></td>
+                                    <td>Delay the first element of the stream</td>
+                                </tr>
+                                <tr>
+                                    <td>keepAlive</td>
+                                    <td></td>
+                                    <td>Emit an item when timeout occurs</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... operators ? Aggregate</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td>countF</td>
+                                    <td>Count elements from stream</td>
+                                </tr>
+                                <tr>
+                                    <td>groupBy</td>
+                                    <td>groupBy</td>
+                                    <td>Group elements by key. Each key will have its subStream</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>max*F</td>
+                                    <td>Max element of the stream</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>min*F</td>
+                                    <td>Min element of the stream</td>
+                                </tr>
+                                <tr>
+                                    <td>reduce</td>
+                                    <td>reduce</td>
+                                    <td>Reduce stream</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>sumF</td>
+                                    <td>Sum elements of the stream</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section>
+                        <h2>... operators ? Search</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td>existsF</td>
+                                    <td>Check if an element exist in the stream</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>findF</td>
+                                    <td>Emit first item which the predicate holds</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>forAllF</td>
+                                    <td>Check if all elements holds the predicate</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>isEmptyF<br/>nonEmptyF</td>
+                                    <td>Check if stream is empty or not</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>... sinks/consumers</h2>
+                        <table class="small-font">
+                            <thead>
+                                <tr>
+                                    <th>Akka-Stream</th>
+                                    <th>Monix</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>actorRef*</td>
+                                    <td></td>
+                                    <td>Consume stream with an Actor</td>
+                                </tr>
+                                <tr>
+                                    <td>cancelled</td>
+                                    <td>cancel</td>
+                                    <td>Cancel right after subscription</td>
+                                </tr>
+                                <tr>
+                                    <td>ignore</td>
+                                    <td>complete</td>
+                                    <td>Signal it's completion</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>firstNotification</td>
+                                    <td>Produce a Notification and cancel the stream (OnNext, Oncomplete, OnError)</td>
+                                </tr>
+                                <tr>
+                                    <td>fold*</td>
+                                    <td>foldLeft*</td>
+                                    <td>Fold the stream</td>
+                                </tr>
+                                <tr>
+                                    <td>foreach*</td>
+                                    <td>foreach*</td>
+                                    <td>Iterate through the stream</td>
+                                </tr>
+                                <tr>
+                                    <td>head*</td>
+                                    <td>head*</td>
+                                    <td>Get the first element of the stream</td>
+                                </tr>
+                                <tr>
+                                    <td>last*</td>
+                                    <td></td>
+                                    <td>Last element of the stream</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>loadBalance</td>
+                                    <td>Load balance element of the stream into different consumers</td>
+                                </tr>
+                                <tr>
+                                    <td>queue</td>
+                                    <td></td>
+                                    <td>Queue elements</td>
+                                </tr>
+                                <tr>
+                                    <td>reduce</td>
+                                    <td></td>
+                                    <td>Reduce the stream</td>
+                                </tr>
+                                <tr>
+                                    <td>Seq</td>
+                                    <td></td>
+                                    <td>Convert stream into a sequence</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>raiseError</td>
+                                    <td>Raise an error immediately</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </section>
+                <section>
+                    <section><h2>Akka-Streams' shapes</h2></section>
+                    <section>
+                        <h2>Akka-Streams' shapes</h2>
+                        <table class="medium-font">
+                            <thead>
+                                <tr>
+                                    <th>Shape</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>SourceShape</td>
+                                    <td>One outlet</td>
+                                </tr>
+                                <tr>
+                                    <td>UniformFanInShape</td>
+                                    <td>Multiple inlets having the same type flowing to one outlet</td>
+                                </tr>
+                                <tr>
+                                    <td>UniformFanOutShape</td>
+                                    <td>One inlet flowing to multiple outlets having the same type</td>
+                                </tr>
+                                <tr>
+                                    <td>FanInShapeN</td>
+                                    <td>Multiple inlets having different type flowing to one outlet</td>
+                                </tr>
+                                <tr>
+                                    <td>FanOutShapeN</td>
+                                    <td>One inlet flowing to multiple outlets having different type</td>
+                                </tr>
+                                <tr>
+                                    <td>BidiShape</td>
+                                    <td>Bi-directional shape</td>
+                                </tr>
+                                <tr>
+                                    <td>FlowShape</td>
+                                    <td>One inlet flowing to one outlet</td>
+                                </tr>
+                                <tr>
+                                    <td>SinkShape</td>
+                                    <td>One inlet</td>
+                                </tr>
+                                <tr>
+                                    <td>ClosedShape</td>
+                                    <td>No outlet. It builds a graph that is runnable.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </section>
+            </div>
+            <div class="footer">
+            </div>
+        </div>
+
+        <script src="lib/js/head.min.js"></script>
+        <script src="js/reveal.js"></script>
+        <script>
+            // More info about config & dependencies:
+            // - https://github.com/hakimel/reveal.js#configuration
+            // - https://github.com/hakimel/reveal.js#dependencies
+            Reveal.initialize({
+                history: true,
+                center: true,
+                progress: true,
+                width: 1280,
+                height: 720,
+                margin: 0.04,
+                dependencies: [
+                    { src: 'plugin/markdown/marked.js' },
+                    { src: 'plugin/markdown/markdown.js' },
+                    { src: 'plugin/notes/notes.js', async: true },
+                    { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+                ]
+            });
+        </script>
+    </body>
+</html>

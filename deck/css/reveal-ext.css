@@ -1,0 +1,6 @@
+.reveal .slides section .fragment.current-displayed {
+  display: none;
+  visibility: hidden; }
+  .reveal .slides section .fragment.current-displayed.current-fragment {
+    display: initial;
+    visibility: inherit; }
